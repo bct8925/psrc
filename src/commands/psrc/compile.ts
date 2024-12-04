@@ -77,6 +77,7 @@ export default class PsrcCompile extends SfCommand<PsrcCompileResult> {
       summary: messages.getMessage('flags.include.summary'),
       description: messages.getMessage('flags.include.description'),
       name: 'include',
+      default: '.psrc-include'
     }),
   };
 
