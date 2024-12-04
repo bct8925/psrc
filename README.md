@@ -1,6 +1,6 @@
 sfdx-profiles-splitter
 ==
-Copyright: [https://github.com/lodossDev](@lodossDev)
+Copyright: [https://github.com/lodossDev]
 
 A plugin for splitting and merging Salesforce profiles.
 
