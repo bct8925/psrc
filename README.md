@@ -1,4 +1,4 @@
-sfdx-profiles-splitter
+Permissions-Source (psrc)
 ==
 Copyright: [https://github.com/lodossDev]
 
