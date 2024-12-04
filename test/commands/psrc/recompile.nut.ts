@@ -14,7 +14,7 @@ describe('psrc compile NUTs', () => {
 
   it('should display provided name', () => {
     const name = 'World';
-    const command = `psrc compile --name ${name}`;
+    const command = `psrc recompile --name ${name}`;
     const output = execCmd(command, { ensureExitCode: 0 }).shellOutput.stdout;
     expect(output).to.contain(name);
   });

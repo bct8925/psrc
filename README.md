@@ -29,5 +29,5 @@ A plugin for splitting and merging Salesforce profiles.
 ## Usage
 
 <!-- commands -->
-* `sf psrc compile --help`
+* `sf psrc recompile --help`
 * `sf psrc decompile --help`

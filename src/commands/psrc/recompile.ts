@@ -21,9 +21,9 @@ import convert from 'xml-js';
 import _config = require('./config.json');
 
 Messages.importMessagesDirectoryFromMetaUrl(import.meta.url);
-const messages = Messages.loadMessages('psrc', 'psrc.compile');
+const messages = Messages.loadMessages('psrc', 'psrc.recompile');
 
-export type PsrcCompileResult = {
+export type PsrcRecompileResult = {
   result: string;
 };
 
@@ -55,7 +55,7 @@ async function getDirs(location: any): Promise<any> {
   return dirs;
 }
 
-export default class PsrcCompile extends SfCommand<PsrcCompileResult> {
+export default class PsrcRecompile extends SfCommand<PsrcRecompileResult> {
   public static readonly summary = messages.getMessage('summary');
   public static readonly description = messages.getMessage('description');
   public static readonly examples = messages.getMessages('examples');
@@ -140,8 +140,8 @@ export default class PsrcCompile extends SfCommand<PsrcCompileResult> {
     return 0;
   }
 
-  public async run(): Promise<PsrcCompileResult> {
-    const { flags } = await this.parse(PsrcCompile);
+  public async run(): Promise<PsrcRecompileResult> {
+    const { flags } = await this.parse(PsrcRecompile);
 
     const inputDir = flags.input;
     const outputDir = flags.output;
@@ -150,7 +150,7 @@ export default class PsrcCompile extends SfCommand<PsrcCompileResult> {
     await this.merge(inputDir, outputDir, include);
 
     return {
-      result: 'src/commands/psrc/decompile.ts',
+      result: 'src/commands/psrc/recompile.ts',
     };
   }
 }

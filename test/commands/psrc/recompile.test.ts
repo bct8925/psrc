@@ -1,9 +1,9 @@
 import { TestContext } from '@salesforce/core/testSetup';
 import { expect } from 'chai';
 import { stubSfCommandUx } from '@salesforce/sf-plugins-core';
-import PsrcCompile from '../../../src/commands/psrc/compile.js';
+import PsrcRecompile from '../../../src/commands/psrc/recompile.js';
 
-describe('psrc compile', () => {
+describe('psrc recompile', () => {
   const $$ = new TestContext();
   let sfCommandStubs: ReturnType<typeof stubSfCommandUx>;
 
@@ -16,7 +16,7 @@ describe('psrc compile', () => {
   });
 
   it('runs hello', async () => {
-    await PsrcCompile.run([]);
+    await PsrcRecompile.run([]);
     const output = sfCommandStubs.log
       .getCalls()
       .flatMap((c) => c.args)
@@ -25,12 +25,12 @@ describe('psrc compile', () => {
   });
 
   it('runs hello with --json and no provided name', async () => {
-    const result = await PsrcCompile.run([]);
-    expect(result.path).to.equal('src/commands/psrc/compile.ts');
+    const result = await PsrcRecompile.run([]);
+    expect(result.path).to.equal('src/commands/psrc/recompile.ts');
   });
 
   it('runs hello world --name Astro', async () => {
-    await PsrcCompile.run(['--name', 'Astro']);
+    await PsrcRecompile.run(['--name', 'Astro']);
     const output = sfCommandStubs.log
       .getCalls()
       .flatMap((c) => c.args)
