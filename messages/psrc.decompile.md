@@ -22,7 +22,14 @@ the output directory to store the chunked profiles.
 
 the output directory to store the chunked profiles.
 
+# flags.include.summary
+
+a file containing the list of profiles to include.
+
+# flags.include.description
+
+a file containing the list of profiles to include.
+
 # examples
 
 - sf psrc decompile --input force-app/main/default/profiles --output force-app/main/default/profiles
-

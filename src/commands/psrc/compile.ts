@@ -32,14 +32,14 @@ function createModel(): any {
     _declaration: {
       _attributes: {
         version: '1.0',
-        encoding: 'UTF-8'
-      }
+        encoding: 'UTF-8',
+      },
     },
     Profile: {
       _attributes: {
-        xmlns: 'http://soap.sforce.com/2006/04/metadata'
-      }
-    }
+        xmlns: 'http://soap.sforce.com/2006/04/metadata',
+      },
+    },
   };
 
   return data;
@@ -65,17 +65,22 @@ export default class PsrcCompile extends SfCommand<PsrcCompileResult> {
       summary: messages.getMessage('flags.input.summary'),
       description: messages.getMessage('flags.input.description'),
       name: 'input',
-      default: 'force-app/main/default/profiles'
+      default: 'force-app/main/default/profiles',
     }),
     output: Flags.string({
       summary: messages.getMessage('flags.output.summary'),
       description: messages.getMessage('flags.output.description'),
       name: 'output',
-      default: 'force-app/main/default/profiles'
-    })
+      default: 'force-app/main/default/profiles',
+    }),
+    include: Flags.string({
+      summary: messages.getMessage('flags.include.summary'),
+      description: messages.getMessage('flags.include.description'),
+      name: 'include',
+    }),
   };
 
-  public async merge(inputDir: string, outputDir: string): Promise<any> {
+  public async merge(inputDir: string, outputDir: string, includeFile: string | undefined): Promise<any> {
     const config: any = _config;
     try {
       const root = path.resolve(inputDir);
@@ -83,9 +88,21 @@ export default class PsrcCompile extends SfCommand<PsrcCompileResult> {
       const location = path.resolve(outputDir);
       await fs.ensureDir(location);
 
+      let profiles: string[] = [];
+      if (includeFile) {
+        profiles = (await fs.readFile(includeFile))
+          .toString()
+          .split('\n')
+          .map((item) => item.trim());
+      }
+
       const rootDirs = await getDirs(root);
       for (const rootDir of rootDirs) {
-        this.log('Merging profile: ' + path.basename(rootDir));
+        const profile = path.basename(rootDir);
+        if (profiles.length && !profiles.includes(profile + '.profile-meta.xml')) {
+          continue;
+        }
+        this.log('Merging profile: ' + profile);
 
         const model: any = createModel();
         const metaDirs = await getDirs(rootDir);
@@ -110,7 +127,7 @@ export default class PsrcCompile extends SfCommand<PsrcCompileResult> {
         }
 
         await fs.writeFile(
-          location + '/' + path.basename(rootDir) + '.profile-meta.xml',
+          location + '/' + profile + '.profile-meta.xml',
           convert.json2xml(JSON.stringify(model), config.xmlExport)
         );
       }
@@ -127,8 +144,9 @@ export default class PsrcCompile extends SfCommand<PsrcCompileResult> {
 
     const inputDir = flags.input;
     const outputDir = flags.output;
+    const include = flags.include;
 
-    await this.merge(inputDir, outputDir);
+    await this.merge(inputDir, outputDir, include);
 
     return {
       result: 'src/commands/psrc/decompile.ts',

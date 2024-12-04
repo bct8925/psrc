@@ -22,7 +22,14 @@ the output directory to store the full profiles.
 
 the output directory to store the full profiles.
 
+# flags.include.summary
+
+a file containing the list of profiles to include.
+
+# flags.include.description
+
+a file containing the list of profiles to include.
+
 # examples
 
 - sf psrc compile --input force-app/main/default/profiles --output force-app/main/default/profiles
-

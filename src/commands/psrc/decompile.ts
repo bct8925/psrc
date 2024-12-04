@@ -18,7 +18,7 @@ import { Messages } from '@salesforce/core';
 import convert from 'xml-js';
 import _config = require('./config.json');
 
-Messages.importMessagesDirectoryFromMetaUrl(import.meta.url)
+Messages.importMessagesDirectoryFromMetaUrl(import.meta.url);
 const messages = Messages.loadMessages('psrc', 'psrc.decompile');
 
 export type PsrcDecompileResult = {
@@ -30,14 +30,14 @@ function createModel(key: any, value: any): any {
     _declaration: {
       _attributes: {
         version: '1.0',
-        encoding: 'UTF-8'
-      }
+        encoding: 'UTF-8',
+      },
     },
     Profile: {
       _attributes: {
-        xmlns: 'http://soap.sforce.com/2006/04/metadata'
-      }
-    }
+        xmlns: 'http://soap.sforce.com/2006/04/metadata',
+      },
+    },
   };
 
   data.Profile[key] = value;
@@ -54,17 +54,22 @@ export default class PsrcDecompile extends SfCommand<PsrcDecompileResult> {
       summary: messages.getMessage('flags.input.summary'),
       description: messages.getMessage('flags.input.description'),
       name: 'input',
-      default: 'force-app/main/default/profiles'
+      default: 'force-app/main/default/profiles',
     }),
     output: Flags.string({
       summary: messages.getMessage('flags.output.summary'),
       description: messages.getMessage('flags.output.description'),
       name: 'output',
-      default: 'force-app/main/default/profiles'
-    })
+      default: 'force-app/main/default/profiles',
+    }),
+    include: Flags.string({
+      summary: messages.getMessage('flags.include.summary'),
+      description: messages.getMessage('flags.include.description'),
+      name: 'include',
+    }),
   };
 
-  public async split(inputDir: string, outputDir: string): Promise<any> {
+  public async split(inputDir: string, outputDir: string, includeFile: string | undefined): Promise<any> {
     const config: any = _config;
     try {
       const root = path.resolve(inputDir);
@@ -73,9 +78,16 @@ export default class PsrcDecompile extends SfCommand<PsrcDecompileResult> {
       await fs.ensureDir(location);
 
       const fileNames = await fs.readdir(root);
+      let profiles: string[] = [];
+      if (includeFile) {
+        profiles = (await fs.readFile(includeFile))
+          .toString()
+          .split('\n')
+          .map((item) => item.trim());
+      }
 
       for (const fileName of fileNames) {
-        if (fileName.includes('.profile')) {
+        if (fileName.includes('.profile') && (!profiles.length || profiles.includes(fileName))) {
           this.log('Splitting profile: ' + fileName);
           // Update on the meta profiles fetched through sfdx metadata API
           const dirRoot = location + '/' + fileName.replace('.profile-meta.xml', '');
@@ -118,7 +130,6 @@ export default class PsrcDecompile extends SfCommand<PsrcDecompileResult> {
                   itemRoot + '/' + metadata + '-meta.xml',
                   convert.json2xml(JSON.stringify(model), config.xmlExport)
                 );
-
               } else {
                 for (const item of stream['Profile'][metadata]) {
                   const model = createModel(metadata, [item]);
@@ -178,8 +189,9 @@ export default class PsrcDecompile extends SfCommand<PsrcDecompileResult> {
 
     const inputDir = flags.input;
     const outputDir = flags.output;
+    const include = flags.include;
 
-    await this.split(inputDir, outputDir);
+    await this.split(inputDir, outputDir, include);
 
     return {
       result: 'src/commands/psrc/decompile.ts',
