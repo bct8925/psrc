@@ -1,0 +1,60 @@
+{
+  "jsonExport": {
+      "compact": true
+  },
+  "xmlExport": {
+      "compact": true,
+      "ignoreComment": true,
+      "spaces": 4
+  },
+  "profiles": {
+      "tags": {
+          "applicationVisibilities": {
+              "nameTag": "application"
+          },
+          "classAccesses": {
+              "nameTag": "apexClass"
+          },
+          "customMetadataTypeAccesses": {
+              "nameTag": "name"
+          },
+          "customSettingAccesses": {
+              "nameTag": "name"
+          },
+          "customPermissions": {
+              "nameTag": "name"
+          },
+          "categoryGroupVisibilities": {
+              "nameTag": "dataCategoryGroup"
+          },
+          "fieldPermissions": {
+              "nameTag": "field"
+          },
+          "flowAccesses": {
+              "nameTag": "flow"
+          },
+          "layoutAssignments": {
+              "nameTag": [ "layout", "recordType" ]
+          },
+          "loginIpRanges": {
+              "nameTag": "_self"
+          },
+          "objectPermissions": {
+              "nameTag": "object"
+          },
+          "pageAccesses": {
+              "nameTag": "apexPage"
+          },
+          "recordTypeVisibilities": {
+              "nameTag": "recordType"
+          },
+          "tabVisibilities": {
+              "nameTag": "tab"
+          },
+          "userPermissions": {
+              "nameTag": "name"
+          }
+      },
+      "metaTags": ["custom", "userLicense"]
+  }
+}
