@@ -95,7 +95,7 @@ export default class PsrcRecompile extends SfCommand<PsrcRecompileResult> {
           .toString()
           .split('\n')
           .map((item) => item.trim());
-      } catch (_) {
+      } catch (_ex) {
         this.log('Including all profiles');
       }
 
