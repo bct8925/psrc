@@ -16,7 +16,6 @@ import fs from 'fs-extra';
 import { SfCommand, Flags } from '@salesforce/sf-plugins-core';
 import { Messages } from '@salesforce/core';
 
-import _ from 'lodash';
 import convert from 'xml-js';
 import _config = require('./config.json');
 
@@ -27,7 +26,7 @@ export type PsrcRecompileResult = {
   result: string;
 };
 
-function createModel(): any {
+function createWrapper(): any {
   const data = {
     _declaration: {
       _attributes: {
@@ -45,7 +44,7 @@ function createModel(): any {
   return data;
 }
 
-async function getDirs(location: any): Promise<any> {
+async function getFolders(location: any): Promise<any> {
   let dirs: any[] = [];
   for (const file of await fs.readdir(location)) {
     if ((await fs.stat(path.join(location, file))).isDirectory()) {
@@ -81,14 +80,14 @@ export default class PsrcRecompile extends SfCommand<PsrcRecompileResult> {
     }),
   };
 
-  public async merge(inputDir: string, outputDir: string, includeFile: string): Promise<any> {
+  public async recompile(inputDir: string, outputDir: string, includeFile: string): Promise<any> {
     const config: any = _config;
     try {
-      const root = path.resolve(inputDir);
+      const inputFolder = path.resolve(inputDir);
+      const outputFolder = path.resolve(outputDir);
+      await fs.ensureDir(outputFolder);
 
-      const location = path.resolve(outputDir);
-      await fs.ensureDir(location);
-
+      // Load includes
       let profiles: string[] = [];
       try {
         profiles = (await fs.readFile(includeFile))
@@ -99,46 +98,43 @@ export default class PsrcRecompile extends SfCommand<PsrcRecompileResult> {
         this.log('Including all profiles');
       }
 
-      const rootDirs = await getDirs(root);
-      for (const rootDir of rootDirs) {
-        const profile = path.basename(rootDir);
-        if (profiles.length && !profiles.includes(profile + '.profile-meta.xml')) {
-          continue;
-        }
-        this.log('Recompiling profile: ' + profile);
+      // For each profile
+      for (const profileFolder of await getFolders(inputFolder)) {
+        const profileName = path.basename(profileFolder);
+        
+        // If not included
+        if (profiles.length && !profiles.includes(profileName + '.profile-meta.xml')) { continue; }
+        
+        this.log('Recompiling profile: ' + profileName);
 
-        const model: any = createModel();
-        const metaDirs = await getDirs(rootDir);
-        for (const metaDir of metaDirs) {
-          const metadataType = path.basename(metaDir);
-          model.Profile[metadataType] = [];
+        // Create profile wrapper
+        const profile: any = createWrapper();
 
-          const fileNames = await fs.readdir(metaDir);
-          for (const fileName of fileNames) {
-            const filePath = metaDir + '/' + fileName;
-            const file = await fs.readFile(filePath);
-            const stream: any = convert.xml2js(file.toString(), config.jsonExport);
+        // For each metadata type
+        for (const metadataFolder of await getFolders(profileFolder)) {
+          const metadataType = path.basename(metadataFolder);
 
-            // Is this needed here??
-            if (stream['Profile'][metadataType] === undefined) {
-              continue;
-            }
+          profile.Profile[metadataType] = [];
 
-            model.Profile[metadataType] = [...model.Profile[metadataType], stream['Profile'][metadataType]];
+          // For each individual metadata file for this type
+          for (const metadataFile of await fs.readdir(metadataFolder)) {
+            const metadata: any = convert.xml2js((await fs.readFile(metadataFolder + '/' + metadataFile)).toString(), config.jsonExport);
+            if (metadata['Profile'][metadataType] === undefined) { continue; }
+
+            profile.Profile[metadataType] = [...profile.Profile[metadataType], metadata['Profile'][metadataType]];
           }
-          model.Profile[metadataType] = _.flatten(model.Profile[metadataType]);
         }
 
+        // Write profile to file
         await fs.writeFile(
-          location + '/' + profile + '.profile-meta.xml',
-          convert.json2xml(JSON.stringify(model), config.xmlExport)
+          outputFolder + '/' + profileName + '.profile-meta.xml',
+          convert.json2xml(JSON.stringify(profile), config.xmlExport)
         );
       }
     } catch (ex: any) {
       this.log(ex);
       return 1;
     }
-
     return 0;
   }
 
@@ -149,10 +145,10 @@ export default class PsrcRecompile extends SfCommand<PsrcRecompileResult> {
     const outputDir = flags.output;
     const include = flags.include;
 
-    await this.merge(inputDir, outputDir, include);
+    await this.recompile(inputDir, outputDir, include);
 
     return {
-      result: 'src/commands/psrc/recompile.ts',
+      result: 'success',
     };
   }
 }
