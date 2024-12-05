@@ -70,7 +70,7 @@ export default class PsrcDecompile extends SfCommand<PsrcDecompileResult> {
     }),
   };
 
-  public async split(inputDir: string, outputDir: string, includeFile: string | undefined): Promise<any> {
+  public async split(inputDir: string, outputDir: string, includeFile: string): Promise<any> {
     const config: any = _config;
     try {
       const root = path.resolve(inputDir);
@@ -80,16 +80,18 @@ export default class PsrcDecompile extends SfCommand<PsrcDecompileResult> {
 
       const fileNames = await fs.readdir(root);
       let profiles: string[] = [];
-      if (includeFile) {
+      try {
         profiles = (await fs.readFile(includeFile))
           .toString()
           .split('\n')
           .map((item) => item.trim());
+      } catch (_) {
+        this.log('Including all profiles');
       }
 
       for (const fileName of fileNames) {
         if (fileName.includes('.profile') && (!profiles.length || profiles.includes(fileName))) {
-          this.log('Splitting profile: ' + fileName);
+          this.log('Decompiling profile: ' + fileName);
           // Update on the meta profiles fetched through sfdx metadata API
           const dirRoot = location + '/' + fileName.replace('.profile-meta.xml', '');
           await fs.ensureDir(dirRoot);

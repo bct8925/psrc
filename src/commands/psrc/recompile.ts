@@ -81,7 +81,7 @@ export default class PsrcRecompile extends SfCommand<PsrcRecompileResult> {
     }),
   };
 
-  public async merge(inputDir: string, outputDir: string, includeFile: string | undefined): Promise<any> {
+  public async merge(inputDir: string, outputDir: string, includeFile: string): Promise<any> {
     const config: any = _config;
     try {
       const root = path.resolve(inputDir);
@@ -90,11 +90,13 @@ export default class PsrcRecompile extends SfCommand<PsrcRecompileResult> {
       await fs.ensureDir(location);
 
       let profiles: string[] = [];
-      if (includeFile) {
+      try {
         profiles = (await fs.readFile(includeFile))
           .toString()
           .split('\n')
           .map((item) => item.trim());
+      } catch (_) {
+        this.log('Including all profiles');
       }
 
       const rootDirs = await getDirs(root);
@@ -103,7 +105,7 @@ export default class PsrcRecompile extends SfCommand<PsrcRecompileResult> {
         if (profiles.length && !profiles.includes(profile + '.profile-meta.xml')) {
           continue;
         }
-        this.log('Merging profile: ' + profile);
+        this.log('Recompiling profile: ' + profile);
 
         const model: any = createModel();
         const metaDirs = await getDirs(rootDir);
