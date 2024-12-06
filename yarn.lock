@@ -2243,11 +2243,6 @@
   dependencies:
     "@types/node" "*"
 
-"@types/lodash@^4.17.13":
-  version "4.17.13"
-  resolved "https://registry.npmjs.org/@types/lodash/-/lodash-4.17.13.tgz"
-  integrity sha512-lfx+dftrEZcdBPczf9d0Qv0x+j/rfNCMuC6OcfXmO8gkfeNAY88PgKUbvG56whcN23gc27yenwF6oJZXGFpYxg==
-
 "@types/mdast@^4.0.0":
   version "4.0.4"
   resolved "https://registry.npmjs.org/@types/mdast/-/mdast-4.0.4.tgz"

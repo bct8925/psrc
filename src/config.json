@@ -1,15 +1,7 @@
 {
-    "jsonExport": {
-        "compact": true
-    },
-    "xmlExport": {
-        "compact": true,
-        "ignoreComment": true,
-        "spaces": 4
-    },
     "link": "https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_profile.htm",
     "profiles": {
-        "tags": {
+        "types": {
             "applicationVisibilities": {
                 "nameTag": "application"
             },
@@ -74,10 +66,18 @@
                 "nameTag": "name"
             }
         },
-        "metaTags": [
+        "tags": [
             "custom",
             "userLicense",
             "description"
         ]
+    },
+    "jsonExport": {
+        "compact": true
+    },
+    "xmlExport": {
+        "compact": true,
+        "ignoreComment": true,
+        "spaces": 4
     }
 }

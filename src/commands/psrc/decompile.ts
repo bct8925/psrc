@@ -1,203 +1,111 @@
-/* eslint-disable no-underscore-dangle */
-/* eslint-disable @typescript-eslint/restrict-plus-operands */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
-/* eslint-disable no-await-in-loop */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable complexity */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unused-vars */
-
-import path from 'node:path';
-import fs from 'fs-extra';
+/* eslint-disable no-await-in-loop */
 
 import { SfCommand, Flags } from '@salesforce/sf-plugins-core';
 import { Messages } from '@salesforce/core';
 
-import convert from 'xml-js';
-import _config = require('./config.json');
+import { createWrapper, getMetadataTags, getMetadataTypes, loadFile, loadFiles, loadFolder, loadIncludes, parseNameTag, writeFile } from '../../utils.js';
 
 Messages.importMessagesDirectoryFromMetaUrl(import.meta.url);
 const messages = Messages.loadMessages('psrc', 'psrc.decompile');
 
 export type PsrcDecompileResult = {
-  result: string;
+    result: string;
 };
 
-function createModel(key: any, value: any): any {
-  const data: any = {
-    _declaration: {
-      _attributes: {
-        version: '1.0',
-        encoding: 'UTF-8',
-      },
-    },
-    Profile: {
-      _attributes: {
-        xmlns: 'http://soap.sforce.com/2006/04/metadata',
-      },
-    },
-  };
-
-  data.Profile[key] = value;
-  return data;
-}
-
 export default class PsrcDecompile extends SfCommand<PsrcDecompileResult> {
-  public static readonly summary = messages.getMessage('summary');
-  public static readonly description = messages.getMessage('description');
-  public static readonly examples = messages.getMessages('examples');
+    public static readonly summary = messages.getMessage('summary');
+    public static readonly description = messages.getMessage('description');
+    public static readonly examples = messages.getMessages('examples');
 
-  public static readonly flags = {
-    input: Flags.string({
-      summary: messages.getMessage('flags.input.summary'),
-      description: messages.getMessage('flags.input.description'),
-      name: 'input',
-      default: 'force-app/main/default/profiles',
-    }),
-    output: Flags.string({
-      summary: messages.getMessage('flags.output.summary'),
-      description: messages.getMessage('flags.output.description'),
-      name: 'output',
-      default: 'force-app/main/default/profiles',
-    }),
-    include: Flags.string({
-      summary: messages.getMessage('flags.include.summary'),
-      description: messages.getMessage('flags.include.description'),
-      name: 'include',
-      default: '.psrc-include'
-    }),
-  };
+    public static readonly flags = {
+        input: Flags.string({
+            summary: messages.getMessage('flags.input.summary'),
+            description: messages.getMessage('flags.input.description'),
+            name: 'input',
+            default: 'force-app/main/default/profiles',
+        }),
+        output: Flags.string({
+            summary: messages.getMessage('flags.output.summary'),
+            description: messages.getMessage('flags.output.description'),
+            name: 'output',
+            default: 'force-app/main/default/profiles',
+        }),
+        include: Flags.string({
+            summary: messages.getMessage('flags.include.summary'),
+            description: messages.getMessage('flags.include.description'),
+            name: 'include',
+            default: '.psrc-include'
+        }),
+    };
 
-  public async split(inputDir: string, outputDir: string, includeFile: string): Promise<any> {
-    const config: any = _config;
-    try {
-      const root = path.resolve(inputDir);
+    public async run(): Promise<PsrcDecompileResult> {
+        const { flags } = await this.parse(PsrcDecompile);
 
-      const location = path.resolve(outputDir);
-      await fs.ensureDir(location);
+        const inputDir = flags.input;
+        const outputDir = flags.output;
+        const include = flags.include;
 
-      const fileNames = await fs.readdir(root);
-      let profiles: string[] = [];
-      try {
-        profiles = (await fs.readFile(includeFile))
-          .toString()
-          .split('\n')
-          .map((item) => item.trim());
-      } catch (_) {
-        this.log('Including all profiles');
-      }
-
-      for (const fileName of fileNames) {
-        if (fileName.includes('.profile') && (!profiles.length || profiles.includes(fileName))) {
-          this.log('Decompiling profile: ' + fileName);
-          // Update on the meta profiles fetched through sfdx metadata API
-          const dirRoot = location + '/' + fileName.replace('.profile-meta.xml', '');
-          await fs.ensureDir(dirRoot);
-
-          const xml = await fs.readFile(root + '/' + fileName);
-          const stream: any = convert.xml2js(xml.toString(), config.jsonExport);
-
-          const metaTags: string[] = Object.values(config.profiles.metaTags);
-          for (const metatag of metaTags) {
-            if (stream['Profile'][metatag] === undefined) {
-              continue;
-            }
-
-            const model = createModel(metatag, stream['Profile'][metatag]);
-            const itemRoot = dirRoot + '/' + metatag;
-            await fs.ensureDir(itemRoot);
-
-            await fs.writeFile(
-              itemRoot + '/' + metatag + '-meta.xml',
-              convert.json2xml(JSON.stringify(model), config.xmlExport)
-            );
-          }
-
-          for (const metadata of Object.keys(config.profiles.tags)) {
-            const itemRoot = dirRoot + '/' + metadata;
-            await fs.ensureDir(itemRoot);
-
-            const targetName = config.profiles.tags[metadata].nameTag;
-
-            if (stream['Profile'][metadata] === undefined) {
-              continue;
-            }
-
-            if (Array.isArray(stream['Profile'][metadata])) {
-              if (targetName === '_self') {
-                const model = createModel(metadata, stream['Profile'][metadata]);
-
-                await fs.writeFile(
-                  itemRoot + '/' + metadata + '-meta.xml',
-                  convert.json2xml(JSON.stringify(model), config.xmlExport)
-                );
-              } else {
-                for (const item of stream['Profile'][metadata]) {
-                  const model = createModel(metadata, [item]);
-
-                  let _filename = '';
-                  if (Array.isArray(targetName)) {
-                    for (const targetNameItem of targetName) {
-                      if (item[targetNameItem]?._text) {
-                        _filename += (_filename ? '#' : '') + item[targetNameItem]._text;
-                      }
-                    }
-                  } else {
-                    _filename = item[targetName]._text;
-                  }
-
-                  await fs.writeFile(
-                    itemRoot + '/' + _filename + '-meta.xml',
-                    convert.json2xml(JSON.stringify(model), config.xmlExport)
-                  );
-                }
-              }
-            } else {
-              const item = stream['Profile'][metadata];
-              const model = createModel(metadata, item);
-              let newFileName = '';
-
-              if (targetName === '_self') {
-                newFileName = metadata;
-              } else if (Array.isArray(targetName)) {
-                for (const targetNameItem of targetName) {
-                  if (stream['Profile'][metadata][targetNameItem]?._text) {
-                    newFileName += (newFileName ? '#' : '') + stream['Profile'][metadata][targetNameItem]._text;
-                  }
-                }
-              } else {
-                newFileName = stream['Profile'][metadata][targetName]._text;
-              }
-
-              await fs.writeFile(
-                itemRoot + '/' + newFileName + '-meta.xml',
-                convert.json2xml(JSON.stringify(model), config.xmlExport)
-              );
-            }
-          }
+        try {
+            await this.decompile(inputDir, outputDir, include);
+        } catch (ex) {
+            this.log(ex as string);
+            return { result: 'fail', };
         }
-      }
-    } catch (ex: any) {
-      this.log(ex);
-      return 1;
+
+        return { result: 'success', };
     }
 
-    return 0;
-  }
+    private async decompile(inputDir: string, outputDir: string, includeFile: string): Promise<void> {
+        // Load folders
+        const inputFolder = await loadFolder(inputDir);
+        const outputFolder = await loadFolder(outputDir);
 
-  public async run(): Promise<PsrcDecompileResult> {
-    const { flags } = await this.parse(PsrcDecompile);
+        // Load includes
+        const profiles: string[] = await loadIncludes.bind(this)(includeFile);
 
-    const inputDir = flags.input;
-    const outputDir = flags.output;
-    const include = flags.include;
+        // For each profile
+        for (const profileName of await loadFiles(inputFolder)) {
+            if (!profileName.includes('.profile-meta.xml') || (profiles.length && !profiles.includes(profileName))) { continue; }
 
-    await this.split(inputDir, outputDir, include);
+            this.log('Decompiling profile: ' + profileName);
 
-    return {
-      result: 'src/commands/psrc/decompile.ts',
-    };
-  }
+            // Create profile folder
+            const profileFolder = await loadFolder(outputFolder + '/' + profileName.replace('.profile-meta.xml', ''));
+
+            // Load profile
+            const profile: any = await loadFile(inputFolder + '/' + profileName);
+
+            // Handle config metadata types
+            const metadataTypes = getMetadataTypes();
+            for (const metadataType of Object.keys(metadataTypes)) {
+                const metadataTypeFolder = await loadFolder(profileFolder + '/' + metadataType);
+
+                if (profile['Profile'][metadataType] === undefined) {
+                    continue;
+                }
+
+                const nameTag = metadataTypes[metadataType].nameTag;
+                const metadataTypeItems = !Array.isArray(profile['Profile'][metadataType]) ? [profile['Profile'][metadataType]] : profile['Profile'][metadataType];
+                for (const item of metadataTypeItems) {
+                    const filename = parseNameTag(nameTag, metadataType, item);
+                    const file = createWrapper(metadataType, [item]);
+                    await writeFile(metadataTypeFolder + '/' + filename + '-meta.xml', file);
+                }
+            }
+
+            // Handle config metadata tags
+            const metadataTags: string[] = Object.values(getMetadataTags);
+            for (const metadataTagName of metadataTags) {
+                if (profile['Profile'][metadataTagName] === undefined) { continue; }
+
+                const metadataTagFolder = await loadFolder(profileFolder + '/' + metadataTagName);
+                const file = createWrapper(metadataTagName, profile['Profile'][metadataTagName]);
+                await writeFile(metadataTagFolder + '/' + metadataTagName + '-meta.xml', file);
+            }
+        }
+    }
 }
